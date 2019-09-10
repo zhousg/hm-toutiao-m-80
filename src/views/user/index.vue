@@ -1,5 +1,5 @@
 <template>
-  <div class='container'>Home-Index</div>
+  <div class='container'>User-Index</div>
 </template>
 
 <script>
