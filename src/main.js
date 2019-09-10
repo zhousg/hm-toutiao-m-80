@@ -9,6 +9,7 @@ import 'vant/lib/index.css'
 
 // rem基准值计算的插件
 import 'amfe-flexible'
+import '@/styles/index.less'
 
 Vue.use(Vant)
 

@@ -1,5 +1,7 @@
 <template>
-  <div class='container'>Home-Index</div>
+  <div class='container'>
+    <van-button to="/article">详情</van-button>
+  </div>
 </template>
 
 <script>
