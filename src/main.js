@@ -5,7 +5,7 @@ import store from './store'
 
 // 完整导入vant  将来上线打包优化 按需导入即可
 import Vant from 'vant'
-import 'vant/lib/index.css'
+import 'vant/lib/index.less'
 
 // rem基准值计算的插件
 import 'amfe-flexible'

@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+import store from '@/store'
 
 // 路由懒加载方式 导入所有的组件
 const Layout = () => import('@/views/Layout')
@@ -35,6 +36,15 @@ const router = new Router({
     { path: '/search/result', name: 'search-result', component: SearchResult },
     { path: '/article', name: 'article', component: Article }
   ]
+})
+
+// 导航守卫（拦截需要登录的页面访问）
+// 那些页面需要拦截：/user /user/profile /user/chat
+// 未登录：才需要拦截
+router.beforeEach((to, from, next) => {
+  const login = { path: '/login', query: { redirect: to.path } }
+  if (to.path.startsWith('/user') && !store.state.user.token) return next(login)
+  next()
 })
 
 export default router
