@@ -9,13 +9,16 @@
       @click-right="$router.push('/search')"
     />
     <div class="my-wrapper" :class="{noTop:path==='/user'}">
-      <router-view></router-view>
+      <keep-alive>
+        <router-view v-if="$route.meta.keepAlive"></router-view>
+      </keep-alive>
+      <router-view v-if="!$route.meta.keepAlive"></router-view>
     </div>
     <van-tabbar route>
       <van-tabbar-item name="/" to="/" icon="home-o">首页</van-tabbar-item>
-      <van-tabbar-item name="/question" to="/question"  icon="chat-o">问答</van-tabbar-item>
-      <van-tabbar-item name="/video" to="/video"  icon="video-o">视频</van-tabbar-item>
-      <van-tabbar-item name="/user" to="/user"  icon="user-o">我的</van-tabbar-item>
+      <van-tabbar-item name="/question" to="/question" icon="chat-o">问答</van-tabbar-item>
+      <van-tabbar-item name="/video" to="/video" icon="video-o">视频</van-tabbar-item>
+      <van-tabbar-item name="/user" to="/user" icon="user-o">我的</van-tabbar-item>
     </van-tabbar>
   </div>
 </template>
@@ -31,18 +34,18 @@ export default {
 </script>
 
 <style scoped lang='less'>
-.container{
+.container {
   width: 100%;
   height: 100%;
   position: relative;
-  .my-wrapper{
+  .my-wrapper {
     width: 100%;
     height: 100%;
     overflow: hidden;
     padding-top: 46px;
     padding-bottom: 50px;
     box-sizing: border-box;
-    &.noTop{
+    &.noTop {
       padding-top: 0;
     }
   }

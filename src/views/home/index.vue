@@ -1,15 +1,20 @@
 <template>
   <div class="container">
-    <van-tabs swipeable v-model="activeIndex">
+    <van-tabs @change="changeChannel" swipeable v-model="activeIndex" :lazy-render="false">
       <van-tab :key="item.id" v-for="item in channels" :title="item.name">
         <!-- 需要滚动条  将来实现阅读记忆功能 -->
-        <div class="scroll-wrapper">
+        <div ref="scroll-wrapper" class="scroll-wrapper" @scroll="remember($event)">
           <van-pull-refresh
             v-model="activeChannel.downLoading"
             @refresh="onRefresh"
             :success-text="refreshSuccessText"
           >
-            <van-list v-model="activeChannel.upLoading" :finished="activeChannel.finished" finished-text="没有更多了" @load="onLoad">
+            <van-list
+              v-model="activeChannel.upLoading"
+              :finished="activeChannel.finished"
+              finished-text="没有更多了"
+              @load="onLoad"
+            >
               <van-cell v-for="article in activeChannel.articles" :key="article.art_id.toString()">
                 <div class="article_item">
                   <h3 class="van-ellipsis">{{article.title}}</h3>
@@ -25,7 +30,7 @@
                     <span>{{article.aut_name}}</span>
                     <span>{{article.comm_count}} 评论</span>
                     <span>{{article.pubdate|relTime}}</span>
-                    <span class="close">
+                    <span v-if="user.token" class="close" @click="openMoreAction(article.art_id)">
                       <van-icon name="cross"></van-icon>
                     </span>
                   </div>
@@ -36,17 +41,36 @@
         </div>
       </van-tab>
     </van-tabs>
-    <span class="bar_btn" slot="nav-right">
+    <!-- 显示频道编辑组件 -->
+    <span class="bar_btn" @click="showChannelEdit=true" slot="nav-right">
       <van-icon name="wap-nav"></van-icon>
     </span>
+    <!-- 更多操作组件 -->
+    <more-action
+      v-if="user.token"
+      v-model="showMoreAction"
+      :articleId="articleId"
+      @on-dislikes="removeArticle()"
+      @on-report="removeArticle()"
+    ></more-action>
+    <!-- 频道编辑组件 -->
+    <channel-edit
+      v-model="showChannelEdit"
+      :channels="channels"
+      :activeIndex.sync="activeIndex"
+    ></channel-edit>
   </div>
 </template>
 
 <script>
 import { getMyChannels } from '@/api/channel'
 import { getArticles } from '@/api/article'
+import { mapState } from 'vuex'
+import MoreAction from './components/more-action'
+import ChannelEdit from './components/channel-edit'
 export default {
   name: 'home-index',
+  components: { MoreAction, ChannelEdit },
   data () {
     return {
       // 刷新成功的文案
@@ -54,21 +78,102 @@ export default {
       // 频道列表
       channels: [],
       // 当前激活的频道索引
-      activeIndex: 0
+      activeIndex: 0,
+      // 控制更多操作的显示隐藏
+      showMoreAction: false,
+      // 当前点击的文章ID
+      articleId: null,
+      // 控制编辑频道的显示隐藏
+      showChannelEdit: false
     }
   },
   computed: {
     // 当前激活的频道
     activeChannel () {
       return this.channels[this.activeIndex]
+    },
+    // user信息 (登录 退出)
+    ...mapState(['user'])
+  },
+  watch: {
+    user () {
+      // 登录 退出 触发当前函数
+      // 默认选中  推荐频道
+      this.activeIndex = 0
+      // 重新更新当前组件的频道数据
+      this.getMyChannels()
+      // 重新获取频道下的文章数据
+      this.onLoad()
+    }
+  },
+  activated () {
+    // 激活组件触发 第一次初始化也叫激活
+    // 获取当前激活的频道下的滚动容器，获取之前记录的阅读位置
+    // ref="scroll-wrapper"  遍历后有很多个容器拥有属性 [dom0,dom1,dom2,...]
+    const domArr = this.$refs['scroll-wrapper']
+    if (domArr) {
+      const scrollWrapper = domArr[this.activeIndex]
+      const scrollTop = this.activeChannel.scrollTop
+      // 设置滚动的容器 的scrollTop属性为阅读位置  即可
+      scrollWrapper.scrollTop = scrollTop
     }
   },
   created () {
     this.getMyChannels()
   },
   methods: {
+    // 删除文章
+    removeArticle () {
+      // 从当前文章列表中移除一个文章
+      // 怎么从数组中删除一项数据  Array.splice(index,1)
+      // 根据当前点击文章的ID 获取其对应的索引
+      // find 找到符合条件的  选项   findIndex  找到符合条件的选项的对应  索引
+      const articles = this.activeChannel.articles
+      const index = articles.findIndex(item => item.art_id === this.articleId)
+      articles.splice(index, 1)
+    },
+    // 打开更多操作
+    openMoreAction (artId) {
+      // 打开 more-action 中的 van-popup 组件
+      this.showMoreAction = true
+      // 记录当前点击的文章ID
+      this.articleId = artId
+    },
+    // 滚动事件
+    remember (e) {
+      // 在当前频道下记录  目前滚动的位置
+      this.activeChannel.scrollTop = e.target.scrollTop
+    },
+    // 切换频道
+    changeChannel () {
+      // 没有数据
+      if (!this.activeChannel.articles.length) {
+        // 开启当前频道的上拉加载效果
+        this.activeChannel.upLoading = true
+        // 主动加载当前频道的数据
+        this.onLoad()
+      } else {
+        // 有数据时
+        // 获取当前激活的滚动容器设置记忆的位置即可。
+        // 执行顺序  我们修改滚动的位置  tab组件滚动到顶部  效果是后面这句代码。
+        // 打个比方： setTimeout(()=>{console.log(1)},0)  console.log(2)  怎么让1打印在2打印后打印
+        // window.setTimeout(() => {
+        //   const domArr = this.$refs['scroll-wrapper'][this.activeIndex]
+        //   domArr.scrollTop = this.activeChannel.scrollTop
+        // }, 0)
+        // vue 提供了上述类似的功能  $nextTick()   下一帧后执行（延时一些时间）
+        // $nextTick   使用场景：改变数据，驱动视图更新，马上去操作dom（获取不到dom）,在$nextTick中操作dom
+        this.$nextTick(() => {
+          const domArr = this.$refs['scroll-wrapper'][this.activeIndex]
+          domArr.scrollTop = this.activeChannel.scrollTop
+        })
+      }
+    },
     // 获取频道列表
     async getMyChannels () {
+      // 清空当前的频道数据  (tabs组件会对数据有缓存，严谨操作)
+      this.channels = []
+
       const data = await getMyChannels()
       // data.chennels 数据结构 [{id,name},...]
       // 不满足页面的数据要求，转化成另外一种格式。
@@ -88,7 +193,9 @@ export default {
         // 文章列表
         articles: [],
         // 获取数据的时间戳
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        // 阅读位置
+        scrollTop: 0
       }))
     },
     async onRefresh () {
@@ -116,7 +223,10 @@ export default {
 
       await this.$sleep()
       this.activeChannel.timestamp = Date.now()
-      const data = await getArticles(this.activeChannel.id, this.activeChannel.timestamp)
+      const data = await getArticles(
+        this.activeChannel.id,
+        this.activeChannel.timestamp
+      )
       // 结束下拉刷新效果
       this.activeChannel.downLoading = false
       // 判断是否有数据
@@ -164,7 +274,10 @@ export default {
       await this.$sleep()
       // 调用函数需要（当前频道的ID，当前频道的时间戳）
       // 获取当前频道 根据tab激活的选项卡获取
-      const data = await getArticles(this.activeChannel.id, this.activeChannel.timestamp)
+      const data = await getArticles(
+        this.activeChannel.id,
+        this.activeChannel.timestamp
+      )
       // 把获取的数据累加到当前频道下的文章列表中
       this.activeChannel.articles.push(...data.results)
       // 结束上拉加载效果
@@ -242,31 +355,31 @@ export default {
   }
 }
 // 文章列表样式
-.article_item{
-  h3{
+.article_item {
+  h3 {
     font-weight: normal;
     line-height: 2;
   }
-  .img_box{
+  .img_box {
     display: flex;
     justify-content: space-between;
-    .w33{
+    .w33 {
       width: 33%;
       height: 90px;
     }
-    .w100{
+    .w100 {
       width: 100%;
       height: 180px;
     }
   }
-  .info_box{
+  .info_box {
     color: #999;
     line-height: 2;
     position: relative;
     font-size: 12px;
-    span{
+    span {
       padding-right: 10px;
-      &.close{
+      &.close {
         border: 1px solid #ddd;
         border-radius: 2px;
         line-height: 15px;

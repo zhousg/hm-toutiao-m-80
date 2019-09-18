@@ -7,7 +7,11 @@
 </template>
 
 <script>
-export default {}
+export default {
+  created () {
+    console.log('ok')
+  }
+}
 </script>
 
 <style scoped lang='less'>
