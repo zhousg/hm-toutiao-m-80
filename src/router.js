@@ -34,7 +34,7 @@ const router = new Router({
     { path: '/login', name: 'login', component: Login },
     { path: '/search', name: 'search', component: Search },
     { path: '/search/result', name: 'search-result', component: SearchResult },
-    { path: '/article', name: 'article', component: Article, meta: { keepAlive: true } }
+    { path: '/article/:id', name: 'article', component: Article, meta: { keepAlive: true } }
   ]
 })
 

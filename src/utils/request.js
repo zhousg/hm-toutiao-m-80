@@ -48,7 +48,8 @@ instance.interceptors.response.use(res => {
     if (!user.token || !user.refresh_token) {
       // 去登录
       router.push(login)
-      return false
+      // return false
+      return Promise.reject(err)
     }
     try {
       // 3. (axios实例)发送刷新token的请求  异步操作
@@ -75,8 +76,10 @@ instance.interceptors.response.use(res => {
       store.commit('delUser')
       // 跳转登录
       router.push(login)
+      return Promise.reject(err)
     }
   }
+  // axios约定如果出现错误应该返回的内容
   return Promise.reject(err)
 })
 

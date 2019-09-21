@@ -15,7 +15,7 @@
               finished-text="没有更多了"
               @load="onLoad"
             >
-              <van-cell v-for="article in activeChannel.articles" :key="article.art_id.toString()">
+              <van-cell  @click="$router.push('/article/'+article.art_id)" v-for="article in activeChannel.articles" :key="article.art_id.toString()">
                 <div class="article_item">
                   <h3 class="van-ellipsis">{{article.title}}</h3>
                   <div class="img_box" v-if="article.cover.type===3">
@@ -171,9 +171,6 @@ export default {
     },
     // 获取频道列表
     async getMyChannels () {
-      // 清空当前的频道数据  (tabs组件会对数据有缓存，严谨操作)
-      this.channels = []
-
       const data = await getMyChannels()
       // data.chennels 数据结构 [{id,name},...]
       // 不满足页面的数据要求，转化成另外一种格式。
@@ -181,6 +178,8 @@ export default {
       // 在遍历的时候回调函数的返回值，就是新数组中的每一项。
       // 注意：在箭头函数 => {}  解析的时候不是对象 而是代码块
       // 写法：如果一定要直接返回对象  包裹小括号
+      // 清空当前的频道数据  (tabs组件会对数据有缓存，严谨操作)
+      this.channels = []
       this.channels = data.channels.map(item => ({
         id: item.id,
         name: item.name,
